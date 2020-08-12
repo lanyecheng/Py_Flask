@@ -100,3 +100,32 @@ def index():
 def page_not_found(e):  # 接受异常对象作为参数
     user = User.query.first()
     return render_template('404.html', user=user), 404  # 返回模板和状态码
+
+
+@app.route('/movie/edit/<int:movie_id>', methods=['GET', 'POST'])
+def edit(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    user = User.query.first()  # 读取用户记录
+    if request.method == 'POST':
+        title = request.form.get('title')
+        year = request.form.get('year')
+        if not title or not year or len(year) > 4 or len(title) > 60:
+            # 显示错误提示
+            flash('Invalid input.')
+            # 重定向回主页
+            return redirect(url_for('index'))
+        movie.title = title
+        movie.year = year
+        db.session.commit()
+        flash('Item updated.')
+        return redirect(url_for('index'))
+    return render_template('edit.html', user=user, movie=movie)
+
+@app.route('/movie/delete/<int:movie_id>', methods=['GET', 'POST'])
+def delete(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    db.session.delete(movie)
+    db.session.commit()
+    flash('Item deleted.')
+    return redirect(url_for('index'))
+
