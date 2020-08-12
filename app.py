@@ -5,6 +5,7 @@
 import os
 import sys
 from flask import Flask, render_template, request, url_for, redirect, flash
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 import click
 
@@ -27,6 +28,14 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # 主键
     name = db.Column(db.String(20))  # 名字
+    username = db.Column(db.String(20))
+    password_hash = db.Column(db.String(128))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def validate_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 # 表名将会是 movie
@@ -44,6 +53,27 @@ def initdb(drop):
         db.drop_all()
     db.create_all()
     click.echo('Initialized database.')  # 输出提示信息
+
+@app.cli.command()
+@click.option('--username', prompt=True, help='The username used to login.')
+@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True, help='The password used to login.')
+def admin(username, password):
+    """Create user."""
+    db.create_all()
+
+    user = User.query.first()
+    if user is not None:
+        click.echo('Updating user...')
+        user.username = username
+        user.set_password(password)  # 设置密码
+    else:
+        click.echo('Creating user...')
+        user = User(username=username, name='Admin')
+        user.set_password(password)  # 设置密码
+        db.session.add(user)
+
+    db.session.commit()  # 提交数据库会话
+    click.echo('Done.')
 
 
 @app.cli.command()
@@ -121,6 +151,7 @@ def edit(movie_id):
         return redirect(url_for('index'))
     return render_template('edit.html', user=user, movie=movie)
 
+
 @app.route('/movie/delete/<int:movie_id>', methods=['GET', 'POST'])
 def delete(movie_id):
     movie = Movie.query.get_or_404(movie_id)
@@ -128,4 +159,3 @@ def delete(movie_id):
     db.session.commit()
     flash('Item deleted.')
     return redirect(url_for('index'))
-
