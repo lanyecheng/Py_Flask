@@ -54,6 +54,7 @@ def initdb(drop):
     db.create_all()
     click.echo('Initialized database.')  # 输出提示信息
 
+
 @app.cli.command()
 @click.option('--username', prompt=True, help='The username used to login.')
 @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True, help='The password used to login.')
@@ -106,6 +107,12 @@ def forge():
     click.echo('Done.')
 
 
+@app.context_processor
+def inject_user():
+    user = User.query.first()
+    return dict(user=user)
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -121,21 +128,18 @@ def index():
         db.session.commit()
         flash('Item created.')
         return redirect(url_for('index'))
-    user = User.query.first()  # 读取用户记录
     movies = Movie.query.all()  # 读取所有电影记录
-    return render_template('index.html', user=user, movies=movies)
+    return render_template('index.html', movies=movies)
 
 
 @app.errorhandler(404)  # 传入要处理的错误代码
 def page_not_found(e):  # 接受异常对象作为参数
-    user = User.query.first()
-    return render_template('404.html', user=user), 404  # 返回模板和状态码
+    return render_template('404.html'), 404  # 返回模板和状态码
 
 
 @app.route('/movie/edit/<int:movie_id>', methods=['GET', 'POST'])
 def edit(movie_id):
     movie = Movie.query.get_or_404(movie_id)
-    user = User.query.first()  # 读取用户记录
     if request.method == 'POST':
         title = request.form.get('title')
         year = request.form.get('year')
@@ -149,7 +153,7 @@ def edit(movie_id):
         db.session.commit()
         flash('Item updated.')
         return redirect(url_for('index'))
-    return render_template('edit.html', user=user, movie=movie)
+    return render_template('edit.html', movie=movie)
 
 
 @app.route('/movie/delete/<int:movie_id>', methods=['GET', 'POST'])
