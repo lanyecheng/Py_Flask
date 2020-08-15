@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# author：albert time:2020/8/15
+# author：lan
+# time:2020/8/15
 
 
 import unittest
 
-from app import app, db, Movie, User, forge, initdb
+from watchlist import app, db
+from watchlist.models import Movie, User
+from watchlist.commands import forge, initdb
 
 
 class WatchlistTestCase(unittest.TestCase):
